@@ -3,3 +3,4 @@ resolver:
 extra-deps:
   - random-1.2.1
   - random-shuffle-0.0.4
+  - split-0.2.3.4

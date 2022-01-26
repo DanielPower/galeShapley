@@ -18,6 +18,13 @@ packages:
       size: 226
   original:
     hackage: random-shuffle-0.0.4
+- completed:
+    hackage: split-0.2.3.4@sha256:a6df9c3e806ee7cb50bc980a183fc1156f35022a39430dabac0bf9456fe18a4b,2647
+    pantry-tree:
+      sha256: 4e7559f1be32a70cdbdb96d14db768561dd36b8fdff36b3ffac94751f5b5ae6d
+      size: 439
+  original:
+    hackage: split-0.2.3.4
 snapshots:
 - completed:
     sha256: 7f69bb29a57495586e7e3ed31ecc59c0d2c959cb23bd52b71ca676f254c9beb1
