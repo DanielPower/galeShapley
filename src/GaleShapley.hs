@@ -5,35 +5,30 @@ import Data.List.Split (splitWhen)
 
 -- Takes a string of space separated values, converts it to a list of strings, and then
 -- parses the strings to integers
-readLine :: IO [Int]
-readLine =
-  map
-    (\p -> read p :: Int)
-    . splitWhen (== ' ')
-    <$> getLine
+readLine :: IO [String]
+readLine = splitWhen (== ' ') <$> getLine
 
 -- Reads the input from stdin
-readInput :: IO (Int, Int, [[Int]], [[Int]], [Int], [Int])
+readInput :: IO (Int, Int, [[String]], [[String]], [String], [String])
 readInput = do
-  _n <- getLine
-  _k <- getLine
-  let n = read _n :: Int
-  let k = read _k :: Int
+  n <- getLine
+  k <- getLine
+  let n' = read n :: Int -- Parse to int
+  let k' = read k :: Int
   _ <- getLine -- Discard empty line
-  h <- replicateM k readLine
+  h <- replicateM k' readLine -- Run readLine k' times, store the results as a list in h
   _ <- getLine
-  s <- replicateM k readLine
+  s <- replicateM k' readLine
   _ <- getLine
   hi <- readLine
   _ <- getLine
   si <- readLine
-  return (n, k, h, s, hi, si)
+  return (n', k', h, s, hi, si)
 
-doGaleShapley :: [Int] -> [Int] -> Int -> Int -> [[Int]] -> [[Int]] -> [Int] -> [Int] -> IO ()
-doGaleShapley hx sx n k h s hi si =
-  print "foo"
+doGaleShapley :: [Int] -> [Int] -> Int -> Int -> [[String]] -> [[String]] -> [String] -> [String] -> ([String], [String])
+doGaleShapley hx sx n k h s hi si = ([], [])
 
-galeShapley :: Int -> Int -> [[Int]] -> [[Int]] -> [Int] -> [Int] -> IO ()
+galeShapley :: Int -> Int -> [[String]] -> [[String]] -> [String] -> [String] -> ([String], [String])
 galeShapley = doGaleShapley (replicate 5 0) (replicate 5 0)
 
 main = do
@@ -44,3 +39,6 @@ main = do
   print s
   print hi
   print si
+  let (a, b) = galeShapley n k h s hi si
+  print a
+  print b
