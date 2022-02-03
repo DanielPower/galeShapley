@@ -37,8 +37,8 @@ doGaleShapley ::
   Map Int Int ->
   Map Int [Int] ->
   Map Int (Map Int Int) ->
-  IO (Map Int Int, Int)
-doGaleShapley [] round hospitalsMap studentsMap _ _ = return (hospitalsMap, round)
+  (Map Int Int, Int)
+doGaleShapley [] round hospitalsMap studentsMap _ _ = (hospitalsMap, round)
 doGaleShapley unmatchedHospitals round hospitalsMap studentsMap hospitals students = do
   let hospitalId = head unmatchedHospitals
   let hospitalPreferences = hospitals ! hospitalId
@@ -73,7 +73,7 @@ galeShapley ::
   Int ->
   Map Int [Int] ->
   Map Int (Map Int Int) ->
-  IO (Map Int Int, Int)
+  (Map Int Int, Int)
 galeShapley n = doGaleShapley unmatchedHospitals 0 hospitalsMap studentsMap
   where
     hospitalsMap = empty
@@ -84,7 +84,7 @@ main = do
   (n, k, h, s, hi, si) <- readInput
   let hospitals = fromList (map (\q -> (q, h !! (hi !! q))) [0 .. (n - 1)])
   let students = fromList (map (\q -> (q, makeStudentValueMap n (s !! (si !! q)))) [0 .. (n - 1)])
-  (mapping, rounds) <- galeShapley n hospitals students
+  let (mapping, rounds) = galeShapley n hospitals students
   let matchList = toList mapping
   print rounds
   mapM_ (uncurry (printf "%d %d\n")) matchList
