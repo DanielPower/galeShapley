@@ -2,14 +2,16 @@ module Main where
 
 import Control.Monad (replicateM)
 import Data.List.Split (splitWhen)
+import Data.Map (Map, delete, empty, fromList, insert, toList, (!), (!?))
+import Text.Printf (printf)
 
 -- Takes a string of space separated values, converts it to a list of strings, and then
 -- parses the strings to integers
-readLine :: IO [String]
-readLine = splitWhen (== ' ') <$> getLine
+readLine :: IO [Int]
+readLine = map (\q -> read q :: Int) . splitWhen (== ' ') <$> getLine
 
 -- Reads the input from stdin
-readInput :: IO (Int, Int, [[String]], [[String]], [String], [String])
+readInput :: IO (Int, Int, [[Int]], [[Int]], [Int], [Int])
 readInput = do
   n <- getLine
   k <- getLine
@@ -25,20 +27,64 @@ readInput = do
   si <- readLine
   return (n', k', h, s, hi, si)
 
-doGaleShapley :: [Int] -> [Int] -> Int -> Int -> [[String]] -> [[String]] -> [String] -> [String] -> ([String], [String])
-doGaleShapley hx sx n k h s hi si = ([], [])
+makeStudentValueMap :: Int -> [Int] -> Map Int Int
+makeStudentValueMap n preferenceList = fromList (zip preferenceList [(n - 1), (n - 2) .. 0])
 
-galeShapley :: Int -> Int -> [[String]] -> [[String]] -> [String] -> [String] -> ([String], [String])
-galeShapley = doGaleShapley (replicate 5 0) (replicate 5 0)
+doGaleShapley ::
+  [Int] ->
+  Int ->
+  Map Int Int ->
+  Map Int Int ->
+  Map Int [Int] ->
+  Map Int (Map Int Int) ->
+  IO (Map Int Int, Int)
+doGaleShapley [] round hospitalsMap studentsMap _ _ = return (hospitalsMap, round)
+doGaleShapley unmatchedHospitals round hospitalsMap studentsMap hospitals students = do
+  let hospitalId = head unmatchedHospitals
+  let hospitalPreferences = hospitals ! hospitalId
+  let hospitals' = insert hospitalId (tail hospitalPreferences) hospitals
+  let studentId = head hospitalPreferences
+  let studentPreferences = students ! studentId
+  let maybeStudentCurrentHospitalId = studentsMap !? studentId
+  case maybeStudentCurrentHospitalId of
+    Nothing -> do
+      doGaleShapley unmatchedHospitals' (round + 1) hospitalsMap' studentsMap' hospitals' students
+      where
+        unmatchedHospitals' = tail unmatchedHospitals
+        hospitalsMap' = insert hospitalId studentId hospitalsMap
+        studentsMap' = insert studentId hospitalId studentsMap
+    Just studentCurrentHospitalId -> do
+      doGaleShapley unmatchedHospitals' (round + 1) hospitalsMap' studentsMap' hospitals' students
+      where
+        (unmatchedHospitals', hospitalsMap', studentsMap') =
+          if studentPreferences ! hospitalId > studentPreferences ! studentCurrentHospitalId
+            then
+              ( studentCurrentHospitalId : tail unmatchedHospitals,
+                insert hospitalId studentId (delete studentCurrentHospitalId hospitalsMap),
+                insert studentId hospitalId studentsMap
+              )
+            else
+              ( hospitalId : tail unmatchedHospitals,
+                hospitalsMap,
+                studentsMap
+              )
+
+galeShapley ::
+  Int ->
+  Map Int [Int] ->
+  Map Int (Map Int Int) ->
+  IO (Map Int Int, Int)
+galeShapley n = doGaleShapley unmatchedHospitals 0 hospitalsMap studentsMap
+  where
+    hospitalsMap = empty
+    studentsMap = empty
+    unmatchedHospitals = [0 .. (n - 1)]
 
 main = do
   (n, k, h, s, hi, si) <- readInput
-  print n
-  print k
-  print h
-  print s
-  print hi
-  print si
-  let (a, b) = galeShapley n k h s hi si
-  print a
-  print b
+  let hospitals = fromList (map (\q -> (q, h !! (hi !! q))) [0 .. (n - 1)])
+  let students = fromList (map (\q -> (q, makeStudentValueMap n (s !! (si !! q)))) [0 .. (n - 1)])
+  (mapping, rounds) <- galeShapley n hospitals students
+  let matchList = toList mapping
+  print rounds
+  mapM_ (uncurry (printf "%d %d\n")) matchList

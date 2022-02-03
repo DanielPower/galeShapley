@@ -26,4 +26,5 @@ executable galeShapley
   main-is:             GaleShapley.hs
   default-language:    Haskell2010
   build-depends:       base >= 4.7 && < 5,
-                       split
+                       split,
+                       containers
