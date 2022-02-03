@@ -28,6 +28,7 @@ readInput = do
 
 -- To the best of knowledge this runs in O(n) with respect to the size of the input, as long as you
 -- assume hash map operations are O(1).
+-- Footnote !1
 doGaleShapley :: [Int] -> Int -> Map Int Int -> Map Int Int -> Map Int [Int] -> Map Int (Map Int Int) -> (Map Int Int, Int)
 doGaleShapley [] round hospitalsMap studentsMap _ _ = (hospitalsMap, round) -- Base case returns the accumulators
 doGaleShapley unmatchedHospitals round hospitalsMap studentsMap hospitals students =
@@ -38,18 +39,18 @@ doGaleShapley unmatchedHospitals round hospitalsMap studentsMap hospitals studen
     hospitals' = insert hospitalId (tail hospitalPreferences) hospitals
     studentId = head hospitalPreferences
     studentPreferences = students ! studentId
-    maybeStudentCurrentHospitalId = studentsMap !? studentId -- !2
-    (unmatchedHospitals', hospitalsMap', studentsMap') = case maybeStudentCurrentHospitalId of
+    maybePreviousHospitalId = studentsMap !? studentId -- Footnote !2
+    (unmatchedHospitals', hospitalsMap', studentsMap') = case maybePreviousHospitalId of
       Nothing ->
         ( tail unmatchedHospitals,
           insert hospitalId studentId hospitalsMap,
           insert studentId hospitalId studentsMap
         )
-      Just studentCurrentHospitalId ->
-        if studentPreferences ! hospitalId > studentPreferences ! studentCurrentHospitalId
+      Just previousHospitalId ->
+        if studentPreferences ! hospitalId > studentPreferences ! previousHospitalId
           then
-            ( studentCurrentHospitalId : tail unmatchedHospitals,
-              insert hospitalId studentId (delete studentCurrentHospitalId hospitalsMap),
+            ( previousHospitalId : tail unmatchedHospitals,
+              insert hospitalId studentId (delete previousHospitalId hospitalsMap),
               insert studentId hospitalId studentsMap
             )
           else
