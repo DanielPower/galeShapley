@@ -10,7 +10,6 @@ import Text.Printf (printf)
 readLine :: IO [Int]
 readLine = map (\q -> read q :: Int) . splitWhen (== ' ') <$> getLine
 
--- Reads the input from stdin
 readInput :: IO (Int, Int, [[Int]], [[Int]], [Int], [Int])
 readInput = do
   n <- getLine
@@ -27,64 +26,78 @@ readInput = do
   si <- readLine
   return (n', k', h, s, hi, si)
 
+-- To the best of knowledge this runs in O(n) with respect to the size of the input, as long as you
+-- assume hash map operations are O(1).
+doGaleShapley :: [Int] -> Int -> Map Int Int -> Map Int Int -> Map Int [Int] -> Map Int (Map Int Int) -> (Map Int Int, Int)
+doGaleShapley [] round hospitalsMap studentsMap _ _ = (hospitalsMap, round) -- Base case returns the accumulators
+doGaleShapley unmatchedHospitals round hospitalsMap studentsMap hospitals students =
+  doGaleShapley unmatchedHospitals' (round + 1) hospitalsMap' studentsMap' hospitals' students
+  where
+    hospitalId = head unmatchedHospitals
+    hospitalPreferences = hospitals ! hospitalId -- (!) is the get operator for Map
+    hospitals' = insert hospitalId (tail hospitalPreferences) hospitals
+    studentId = head hospitalPreferences
+    studentPreferences = students ! studentId
+    maybeStudentCurrentHospitalId = studentsMap !? studentId -- !2
+    (unmatchedHospitals', hospitalsMap', studentsMap') = case maybeStudentCurrentHospitalId of
+      Nothing ->
+        ( tail unmatchedHospitals,
+          insert hospitalId studentId hospitalsMap,
+          insert studentId hospitalId studentsMap
+        )
+      Just studentCurrentHospitalId ->
+        if studentPreferences ! hospitalId > studentPreferences ! studentCurrentHospitalId
+          then
+            ( studentCurrentHospitalId : tail unmatchedHospitals,
+              insert hospitalId studentId (delete studentCurrentHospitalId hospitalsMap),
+              insert studentId hospitalId studentsMap
+            )
+          else
+            ( hospitalId : tail unmatchedHospitals,
+              hospitalsMap,
+              studentsMap
+            )
+
+-- Wrapper to simplify external usage of the galeShapley function, by not exposing the accumulators
+-- If the algorithm were to be distributed as a library, only this function would be exposed
+galeShapley :: Int -> Map Int [Int] -> Map Int (Map Int Int) -> (Map Int Int, Int)
+galeShapley n = doGaleShapley unmatchedHospitals rounds hospitalsMap studentsMap
+  where
+    unmatchedHospitals = [0 .. (n - 1)]
+    rounds = 0
+    hospitalsMap = empty
+    studentsMap = empty
+
+-- Creates a map for each student of hospitalId to value. This allows us to determine whether
+-- a student prefers one hospital to another in constant time, rather than having to traverse
+-- the preference list to determine which hospital appears first.
 makeStudentValueMap :: Int -> [Int] -> Map Int Int
 makeStudentValueMap n preferenceList = fromList (zip preferenceList [(n - 1), (n - 2) .. 0])
 
-doGaleShapley ::
-  [Int] ->
-  Int ->
-  Map Int Int ->
-  Map Int Int ->
-  Map Int [Int] ->
-  Map Int (Map Int Int) ->
-  (Map Int Int, Int)
-doGaleShapley [] round hospitalsMap studentsMap _ _ = (hospitalsMap, round)
-doGaleShapley unmatchedHospitals round hospitalsMap studentsMap hospitals students = do
-  let hospitalId = head unmatchedHospitals
-  let hospitalPreferences = hospitals ! hospitalId
-  let hospitals' = insert hospitalId (tail hospitalPreferences) hospitals
-  let studentId = head hospitalPreferences
-  let studentPreferences = students ! studentId
-  let maybeStudentCurrentHospitalId = studentsMap !? studentId
-  case maybeStudentCurrentHospitalId of
-    Nothing -> do
-      doGaleShapley unmatchedHospitals' (round + 1) hospitalsMap' studentsMap' hospitals' students
-      where
-        unmatchedHospitals' = tail unmatchedHospitals
-        hospitalsMap' = insert hospitalId studentId hospitalsMap
-        studentsMap' = insert studentId hospitalId studentsMap
-    Just studentCurrentHospitalId -> do
-      doGaleShapley unmatchedHospitals' (round + 1) hospitalsMap' studentsMap' hospitals' students
-      where
-        (unmatchedHospitals', hospitalsMap', studentsMap') =
-          if studentPreferences ! hospitalId > studentPreferences ! studentCurrentHospitalId
-            then
-              ( studentCurrentHospitalId : tail unmatchedHospitals,
-                insert hospitalId studentId (delete studentCurrentHospitalId hospitalsMap),
-                insert studentId hospitalId studentsMap
-              )
-            else
-              ( hospitalId : tail unmatchedHospitals,
-                hospitalsMap,
-                studentsMap
-              )
-
-galeShapley ::
-  Int ->
-  Map Int [Int] ->
-  Map Int (Map Int Int) ->
-  (Map Int Int, Int)
-galeShapley n = doGaleShapley unmatchedHospitals 0 hospitalsMap studentsMap
-  where
-    hospitalsMap = empty
-    studentsMap = empty
-    unmatchedHospitals = [0 .. (n - 1)]
-
 main = do
   (n, k, h, s, hi, si) <- readInput
+
+  -- A map of hospitalId -> PreferenceList
   let hospitals = fromList (map (\q -> (q, h !! (hi !! q))) [0 .. (n - 1)])
+
+  -- A map of studentId -> a map of hospitalId -> the rank of that hospital to the student
+  -- This is used instead of a preference list so we can look up the rank of a hospital to a student
+  -- in constant time, and therefore determine whether or not a student will accept or reject
+  -- a new offer in O(1)
   let students = fromList (map (\q -> (q, makeStudentValueMap n (s !! (si !! q)))) [0 .. (n - 1)])
-  let (mapping, rounds) = galeShapley n hospitals students
-  let matchList = toList mapping
+
+  let (hospitalsMap, rounds) = galeShapley n hospitals students
   print rounds
-  mapM_ (uncurry (printf "%d %d\n")) matchList
+  mapM_ (uncurry (printf "%d %d\n")) (toList hospitalsMap)
+
+-- !1 All functions in Haskell are curried. The type declaration you see above each function
+--    declaration shows each argument's type separated by an arrow. The last type is the return
+--    type.
+--
+-- !2 Unlike many languages like Python and Javascript, Haskell has no Null data type. Instead
+--    you can use the Maybe type, which contains either `Nothing`, or `Just a`, where a is a value.
+--    You can then pattern match on the Maybe to handle both of those cases.
+--
+--    Unlike languages with null, Haskell's compiler forces you to handle both cases. You can't
+--    forget that `Nothing` is a possibility, which is a common pitfall in many nullable languages.
+--    This means less potential for runtime errors.
