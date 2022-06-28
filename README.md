@@ -1,34 +1,4 @@
-COMP 3600 Optional Assignment
-
-Daniel Power
-201244498
-
-# Instructions for Notebook/written portion of assignment
-The Notebook server should already be running. Navigate to this url:
-http://192.53.121.143:9000
-
-You will be prompted for a password. Use "kolokolova"
-
-
-# Instructions for building and manual usage of the programs
-
-## Connect to the server
-
-Since none of the LabNet machines had either ghci (the Haskell compiler) or stack
-(the Haskell build system/package manager), I figured the easiest way to give you
-access was to setup a server that is pre-configured for you. So you can ssh into it
-the same way you do to access Garfield, Intrepid, etc.
-
-To access the server, use the following command:
-
-`ssh root@192.53.121.143`
-
-You will be prompted for a password. Use "kolokolova"
-
-You should then navigate to the `galeShapley` directory, as that is where all the
-relevant files are.
-
-`cd galeShapley`
+# COMP 3600 Optional Assignment
 
 ## Usage of the programs
 
